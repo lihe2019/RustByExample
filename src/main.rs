@@ -3956,6 +3956,395 @@ pub mod c17 {
 
 }
 
+pub mod c18 {
+    pub mod c18_1 {
+        fn give_princess(gift: &str) {
+            // 公主讨厌蛇，所以如果公主表示厌恶的话我们要停止！
+            if gift == "snake" { panic!("AAAaaaaa!!!!"); }
+
+            println!("I love {}s!!!!!", gift);
+        }
+
+        pub(crate) fn main() {
+            give_princess("teddy bear");
+            give_princess("snake");
+        }
+
+    }
+
+    pub mod c18_2 {
+        // 平民（commoner）们见多识广，收到什么礼物都能应对。
+        // 所有礼物都显式地使用 `match` 来处理。
+        fn give_commoner(gift: Option<&str>) {
+            // 指出每种情况下的做法。
+            match gift {
+                Some("snake") => println!("Yuck! I'm throwing that snake in a fire."),
+                Some(inner)   => println!("{}? How nice.", inner),
+                None          => println!("No gift? Oh well."),
+            }
+        }
+
+        // 养在深闺人未识的公主见到蛇就会 `panic`（恐慌）。
+        // 这里所有的礼物都使用 `unwrap` 隐式地处理。
+        fn give_princess(gift: Option<&str>) {
+            // `unwrap` 在接收到 `None` 时将返回 `panic`。
+            let inside = gift.unwrap();
+            if inside == "snake" { panic!("AAAaaaaa!!!!"); }
+
+            println!("I love {}s!!!!!", inside);
+        }
+
+        pub(crate) fn main() {
+            let food  = Some("chicken");
+            let snake = Some("snake");
+            let void  = None;
+
+            give_commoner(food);
+            give_commoner(snake);
+            give_commoner(void);
+
+            let bird = Some("robin");
+            let nothing = None;
+
+            give_princess(bird);
+            give_princess(nothing);
+        }
+
+    }
+
+    pub mod c18_2_1 {
+        fn next_birthday(current_age: Option<u8>) -> Option<String> {
+            // 如果 `current_age` 是 `None`，这将返回 `None`。
+            // 如果 `current_age` 是 `Some`，内部的 `u8` 将赋值给 `next_age`。
+            let next_age: u8 = current_age?;
+            Some(format!("Next year I will be {}", next_age))
+        }
+
+        struct Person {
+            job: Option<Job>,
+        }
+
+        #[derive(Clone, Copy)]
+        struct Job {
+            phone_number: Option<PhoneNumber>,
+        }
+
+        #[derive(Clone, Copy)]
+        struct PhoneNumber {
+            area_code: Option<u8>,
+            number: u32,
+        }
+
+        impl Person {
+
+            // 获取此人的工作电话号码的区号（如果存在的话）。
+            fn work_phone_area_code(&self) -> Option<u8> {
+                // 没有`？`运算符的话，这将需要很多的嵌套的 `match` 语句。
+                // 这将需要更多代码——尝试自己编写一下，看看哪个更容易。
+                self.job?.phone_number?.area_code
+            }
+        }
+
+        pub(crate) fn main() {
+            let p = Person {
+                job: Some(Job {
+                    phone_number: Some(PhoneNumber {
+                        area_code: Some(61),
+                        number: 439222222,
+                    }),
+                }),
+            };
+
+            assert_eq!(p.work_phone_area_code(), Some(61));
+        }
+
+    }
+    pub mod c18_2_2 {
+        #![allow(dead_code)]
+
+        #[derive(Debug)] enum Food { Apple, Carrot, Potato }
+
+        #[derive(Debug)] struct Peeled(Food);
+        #[derive(Debug)] struct Chopped(Food);
+        #[derive(Debug)] struct Cooked(Food);
+
+        // 削皮。如果没有食物，就返回 `None`。否则返回削好皮的食物。
+        fn peel(food: Option<Food>) -> Option<Peeled> {
+            match food {
+                Some(food) => Some(Peeled(food)),
+                None       => None,
+            }
+        }
+
+        // 切食物。如果没有食物，就返回 `None`。否则返回切好的食物。
+        fn chop(peeled: Option<Peeled>) -> Option<Chopped> {
+            match peeled {
+                Some(Peeled(food)) => Some(Chopped(food)),
+                None               => None,
+            }
+        }
+
+        // 烹饪食物。这里，我们使用 `map()` 来替代 `match` 以处理各种情况。
+        fn cook(chopped: Option<Chopped>) -> Option<Cooked> {
+            chopped.map(|Chopped(food)| Cooked(food))
+        }
+
+        // 这个函数会完成削皮切块烹饪一条龙。我们把 `map()` 串起来，以简化代码。
+        fn process(food: Option<Food>) -> Option<Cooked> {
+            food.map(|f| Peeled(f))
+                .map(|Peeled(f)| Chopped(f))
+                .map(|Chopped(f)| Cooked(f))
+        }
+
+        // 在尝试吃食物之前确认食物是否存在是非常重要的！
+        fn eat(food: Option<Cooked>) {
+            match food {
+                Some(food) => println!("Mmm. I love {:?}", food),
+                None       => println!("Oh no! It wasn't edible."),
+            }
+        }
+
+        pub(crate) fn main() {
+            let apple = Some(Food::Apple);
+            let carrot = Some(Food::Carrot);
+            let potato = None;
+
+            let cooked_apple = cook(chop(peel(apple)));
+            let cooked_carrot = cook(chop(peel(carrot)));
+
+            // 现在让我们试试看起来更简单的 `process()`。
+            let cooked_potato = process(potato);
+
+            eat(cooked_apple);
+            eat(cooked_carrot);
+            eat(cooked_potato);
+        }
+    }
+    pub mod c18_2_3 {
+        #![allow(dead_code)]
+
+        #[derive(Debug)] enum Food { CordonBleu, Steak, Sushi }
+        #[derive(Debug)] enum Day { Monday, Tuesday, Wednesday }
+
+        // 我们没有制作寿司所需的原材料（ingredient）（有其他的原材料）。
+        fn have_ingredients(food: Food) -> Option<Food> {
+            match food {
+                Food::Sushi => None,
+                _           => Some(food),
+            }
+        }
+
+        // 我们拥有全部食物的食谱，除了法国蓝带猪排（Cordon Bleu）的。
+        fn have_recipe(food: Food) -> Option<Food> {
+            match food {
+                Food::CordonBleu => None,
+                _                => Some(food),
+            }
+        }
+
+
+        // 要做一份好菜，我们需要原材料和食谱。
+        // 我们可以借助一系列 `match` 来表达这个逻辑：
+        fn cookable_v1(food: Food) -> Option<Food> {
+            match have_ingredients(food) {
+                None       => None,
+                Some(food) => match have_recipe(food) {
+                    None       => None,
+                    Some(food) => Some(food),
+                },
+            }
+        }
+
+        // 也可以使用 `and_then()` 把上面的逻辑改写得更紧凑：
+        fn cookable_v2(food: Food) -> Option<Food> {
+            have_ingredients(food).and_then(have_recipe)
+        }
+
+        fn eat(food: Food, day: Day) {
+            match cookable_v2(food) {
+                Some(food) => println!("Yay! On {:?} we get to eat {:?}.", day, food),
+                None       => println!("Oh no. We don't get to eat on {:?}?", day),
+            }
+        }
+
+        pub(crate) fn main() {
+            let (cordon_bleu, steak, sushi) = (Food::CordonBleu, Food::Steak, Food::Sushi);
+
+            eat(cordon_bleu, Day::Monday);
+            eat(steak, Day::Tuesday);
+            eat(sushi, Day::Wednesday);
+        }
+
+    }
+
+    pub mod c18_3 {
+        fn multiply(first_number_str: &str, second_number_str: &str) -> i32 {
+            // 我们试着用 `unwrap()` 把数字放出来。它会咬我们一口吗？
+            let first_number = first_number_str.parse::<i32>().unwrap();
+            let second_number = second_number_str.parse::<i32>().unwrap();
+            first_number * second_number
+        }
+
+        pub fn main() {
+            let twenty = multiply("10", "2");
+            println!("double is {}", twenty);
+
+            let tt = multiply("t", "2");
+            println!("double is {}", tt);
+        }
+
+    }
+
+    pub mod c18_3_1_old {
+        use std::num::ParseIntError;
+
+        // 修改了上一节中的返回类型，现在使用模式匹配而不是 `unwrap()`。
+        fn multiply(first_number_str: &str, second_number_str: &str) -> Result<i32, ParseIntError> {
+            match first_number_str.parse::<i32>() {
+                Ok(first_number)  => {
+                    match second_number_str.parse::<i32>() {
+                        Ok(second_number)  => {
+                            Ok(first_number * second_number)
+                        },
+                        Err(e) => Err(e),
+                    }
+                },
+                Err(e) => Err(e),
+            }
+        }
+
+        fn print(result: Result<i32, ParseIntError>) {
+            match result {
+                Ok(n)  => println!("n is {}", n),
+                Err(e) => println!("Error: {}", e),
+            }
+        }
+
+        pub fn main() {
+            // 这种情形下仍然会给出正确的答案。
+            let twenty = multiply("10", "2");
+            print(twenty);
+
+            // 这种情况下就会提供一条更有用的错误信息。
+            let tt = multiply("t", "2");
+            print(tt);
+        }
+
+    }
+    pub mod c18_3_1_new {
+        use std::num::ParseIntError;
+
+        // 就像 `Option` 那样，我们可以使用 `map()` 之类的组合算子。
+        // 除去写法外，这个函数与上面那个完全一致，它的作用是：
+        // 如果值是合法的，计算其乘积，否则返回错误。
+        fn multiply(first_number_str: &str, second_number_str: &str) -> Result<i32, ParseIntError> {
+            first_number_str.parse::<i32>().and_then(|first_number| {
+                second_number_str.parse::<i32>().map(|second_number| first_number * second_number)
+            })
+        }
+
+        fn print(result: Result<i32, ParseIntError>) {
+            match result {
+                Ok(n)  => println!("n is {}", n),
+                Err(e) => println!("Error: {}", e),
+            }
+        }
+
+        pub fn main() {
+            // 这种情况下仍然会给出正确的答案。
+            let twenty = multiply("10", "2");
+            print(twenty);
+
+            // 这种情况下就会提供一条更有用的错误信息。
+            let tt = multiply("t", "2");
+            print(tt);
+        }
+
+    }
+
+    pub mod c18_3_2 {
+        use std::num::ParseIntError;
+
+        // 为带有错误类型 `ParseIntError` 的 `Result` 定义一个泛型别名。
+        type AliasedResult<T> = Result<T, ParseIntError>;
+
+        // 使用上面定义过的别名来表示上一节中的 `Result<i32,ParseIntError>` 类型。
+        fn multiply(first_number_str: &str, second_number_str: &str) -> AliasedResult<i32> {
+            first_number_str.parse::<i32>().and_then(|first_number| {
+                second_number_str.parse::<i32>().map(|second_number| first_number * second_number)
+            })
+        }
+
+        // 在这里使用别名又让我们节省了一些代码量。
+        fn print(result: AliasedResult<i32>) {
+            match result {
+                Ok(n)  => println!("n is {}", n),
+                Err(e) => println!("Error: {}", e),
+            }
+        }
+
+        pub fn main() {
+            print(multiply("10", "2"));
+            print(multiply("t", "2"));
+        }
+
+    }
+    pub mod c18_3_3 {
+        use std::num::ParseIntError;
+
+        fn multiply(first_number_str: &str, second_number_str: &str) -> Result<i32, ParseIntError> {
+            let first_number = match first_number_str.parse::<i32>() {
+                Ok(first_number)  => first_number,
+                Err(e) => return Err(e),
+            };
+
+            let second_number = match second_number_str.parse::<i32>() {
+                Ok(second_number)  => second_number,
+                Err(e) => return Err(e),
+            };
+
+            Ok(first_number * second_number)
+        }
+
+        fn print(result: Result<i32, ParseIntError>) {
+            match result {
+                Ok(n)  => println!("n is {}", n),
+                Err(e) => println!("Error: {}", e),
+            }
+        }
+
+        pub fn main() {
+            print(multiply("10", "2"));
+            print(multiply("t", "2"));
+        }
+
+    }
+    pub mod c18_3_4 {
+        use std::num::ParseIntError;
+
+        fn multiply(first_number_str: &str, second_number_str: &str) -> Result<i32, ParseIntError> {
+            let first_number = first_number_str.parse::<i32>()?;
+            let second_number = second_number_str.parse::<i32>()?;
+
+            Ok(first_number * second_number)
+        }
+
+        fn print(result: Result<i32, ParseIntError>) {
+            match result {
+                Ok(n)  => println!("n is {}", n),
+                Err(e) => println!("Error: {}", e),
+            }
+        }
+
+        pub fn main() {
+            print(multiply("10", "2"));
+            print(multiply("t", "2"));
+        }
+
+    }
+    // todo: 18.4
+}
+
 pub mod c19 {
     pub mod c19_1 {
         use std::mem;
@@ -4073,11 +4462,390 @@ pub mod c19 {
             }
             println!("Updated vector: {:?}", xs);
         }
+    }
+
+    pub mod c19_3 {
+        pub(crate) fn main() {
+            // （所有的类型标注都不是必需的）
+            // 一个对只读内存中分配的字符串的引用
+            let pangram: &'static str = "the quick brown fox jumps over the lazy dog";
+            println!("Pangram: {}", pangram);
+
+            // 逆序迭代单词，这里并没有分配新的字符串
+            println!("Words in reverse");
+            for word in pangram.split_whitespace().rev() {
+                println!("> {}", word);
+            }
+
+            // 复制字符到一个 vector，排序并移除重复值
+            let mut chars: Vec<char> = pangram.chars().collect();
+            chars.sort();
+            chars.dedup();
+
+            // 创建一个空的且可增长的 `String`
+            let mut string = String::new();
+            for c in chars {
+                // 在字符串的尾部插入一个字符
+                string.push(c);
+                // 在字符串尾部插入一个字符串
+                string.push_str(", ");
+            }
+            println!("{}", string);
+
+            // 这个缩短的字符串是原字符串的一个切片，所以没有执行新的分配操作
+            let chars_to_trim: &[char] = &[' ', ','];
+            let trimmed_str: &str = string.trim_matches(chars_to_trim);
+            println!("Used characters: {}", trimmed_str);
+
+            // 堆分配一个字符串
+            let alice = String::from("I like dogs");
+            // 分配新内存并存储修改过的字符串
+            let bob: String = alice.replace("dog", "cat");
+
+            println!("Alice says: {}", alice);
+            println!("Bob says: {}", bob);
+        }
+
+    }
+
+    pub mod c19_4 {
+        // 不会 `panic!` 的整数除法。
+        fn checked_division(dividend: i32, divisor: i32) -> Option<i32> {
+            if divisor == 0 {
+                // 失败表示成 `None` 取值
+                None
+            } else {
+                // 结果 Result 被包装到 `Some` 取值中
+                Some(dividend / divisor)
+            }
+        }
+
+        // 此函数处理可能失败的除法
+        fn try_division(dividend: i32, divisor: i32) {
+            // `Option` 值可以进行模式匹配，就和其他枚举类型一样
+            match checked_division(dividend, divisor) {
+                None => println!("{} / {} failed!", dividend, divisor),
+                Some(quotient) => {
+                    println!("{} / {} = {}", dividend, divisor, quotient)
+                },
+            }
+        }
+
+        pub fn main() {
+            try_division(4, 2);
+            try_division(1, 0);
+
+            // 绑定 `None` 到一个变量需要类型标注
+            let none: Option<i32> = None;
+            let _equivalent_none = None::<i32>;
+
+            let optional_float = Some(0f32);
+
+            // 解包 `Some` 将取出被包装的值。
+            println!("{:?} unwraps to {:?}", optional_float, optional_float.unwrap());
+
+            // 解包 `None` 将会引发 `panic!`。
+            // println!("{:?} unwraps to {:?}", none, none.unwrap());
+        }
+
+    }
+
+    pub mod c19_5 {
+        mod checked {
+            // 我们想要捕获的数学 “错误”
+            #[derive(Debug)]
+            pub enum MathError {
+                DivisionByZero,
+                NegativeLogarithm,
+                NegativeSquareRoot,
+            }
+
+            pub type MathResult = Result<f64, MathError>;
+
+            pub fn div(x: f64, y: f64) -> MathResult {
+                if y == 0.0 {
+                    // 此操作将会失败，那么（与其让程序崩溃）不如把失败的原因包装在
+                    // `Err` 中并返回
+                    Err(MathError::DivisionByZero)
+                } else {
+                    // 此操作是有效的，返回包装在 `Ok` 中的结果
+                    Ok(x / y)
+                }
+            }
+
+            pub fn sqrt(x: f64) -> MathResult {
+                if x < 0.0 {
+                    Err(MathError::NegativeSquareRoot)
+                } else {
+                    Ok(x.sqrt())
+                }
+            }
+
+            pub fn ln(x: f64) -> MathResult {
+                if x < 0.0 {
+                    Err(MathError::NegativeLogarithm)
+                } else {
+                    Ok(x.ln())
+                }
+            }
+        }
+
+        // `op(x, y)` === `sqrt(ln(x / y))`
+        fn op(x: f64, y: f64) -> f64 {
+            // 这是一个三层的 match 金字塔！
+            match checked::div(x, y) {
+                Err(why) => panic!("{:?}", why),
+                Ok(ratio) => match checked::ln(ratio) {
+                    Err(why) => panic!("{:?}", why),
+                    Ok(ln) => match checked::sqrt(ln) {
+                        Err(why) => panic!("{:?}", why),
+                        Ok(sqrt) => sqrt,
+                    },
+                },
+            }
+        }
+
+        pub fn main() {
+            // 这会失败吗？
+            println!("{}", op(1.0, 10.0));
+        }
+
+    }
+
+    pub mod c19_6 {
+        // 整型除法（/）的重新实现
+        fn division(dividend: i32, divisor: i32) -> i32 {
+            if divisor == 0 {
+                // 除以 0 会引发 panic
+                panic!("division by zero");
+            } else {
+                dividend / divisor
+            }
+        }
+
+        // `main` 任务
+        pub fn main() {
+            // 堆分配的整数
+            let _x = Box::new(0i32);
+
+            // 此操作将会引发一个任务失败
+            division(3, 0);
+
+            println!("This point won't be reached!");
+
+            // `_x` 应当会在此处被销毁
+        }
+
+    }
+
+    pub mod c19_7 {
+        use std::collections::HashMap;
+
+        fn call(number: &str) -> &str {
+            match number {
+                "798-1364" => "We're sorry, the call cannot be completed as dialed.
+            Please hang up and try again.",
+                "645-7689" => "Hello, this is Mr. Awesome's Pizza. My name is Fred.
+            What can I get for you today?",
+                _ => "Hi! Who is this again?"
+            }
+        }
+
+        pub fn main() {
+            let mut contacts = HashMap::new();
+
+            contacts.insert("Daniel", "798-1364");
+            contacts.insert("Ashley", "645-7689");
+            contacts.insert("Katie", "435-8291");
+            contacts.insert("Robert", "956-1745");
+
+            // 接受一个引用并返回 Option<&V>
+            match contacts.get(&"Daniel") {
+                Some(&number) => println!("Calling Daniel: {}", call(number)),
+                _ => println!("Don't have Daniel's number."),
+            }
+
+            // 如果被插入的值为新内容，那么 `HashMap::insert()` 返回 `None`，
+            // 否则返回 `Some(value)`
+            contacts.insert("Daniel", "164-6743");
+
+            match contacts.get(&"Ashley") {
+                Some(&number) => println!("Calling Ashley: {}", call(number)),
+                _ => println!("Don't have Ashley's number."),
+            }
+
+            contacts.remove(&("Ashley"));
+
+            // `HashMap::iter()` 返回一个迭代器，该迭代器以任意顺序举出
+            // (&'a key, &'a value) 对。
+            for (contact, &number) in contacts.iter() {
+                println!("Calling {}: {}", contact, call(number));
+            }
+        }
+
+    }
+
+    pub mod c19_7_1 {
+        use std::collections::HashMap;
+
+        // Eq 要求你对此类型推导 PartialEq。
+        #[derive(PartialEq, Eq, Hash)]
+        struct Account<'a>{
+            username: &'a str,
+            password: &'a str,
+        }
+
+        struct AccountInfo<'a>{
+            name: &'a str,
+            email: &'a str,
+        }
+
+        type Accounts<'a> = HashMap<Account<'a>, AccountInfo<'a>>;
+
+        fn try_logon<'a>(accounts: &Accounts<'a>,
+                         username: &'a str, password: &'a str){
+            println!("Username: {}", username);
+            println!("Password: {}", password);
+            println!("Attempting logon...");
+
+            let logon = Account {
+                username,
+                password,
+            };
+
+            match accounts.get(&logon) {
+                Some(account_info) => {
+                    println!("Successful logon!");
+                    println!("Name: {}", account_info.name);
+                    println!("Email: {}", account_info.email);
+                },
+                _ => println!("Login failed!"),
+            }
+        }
+
+        pub fn main(){
+            let mut accounts: Accounts = HashMap::new();
+
+            let account = Account {
+                username: "j.everyman",
+                password: "password123",
+            };
+
+            let account_info = AccountInfo {
+                name: "John Everyman",
+                email: "j.everyman@email.com",
+            };
+
+            accounts.insert(account, account_info);
+
+            try_logon(&accounts, "j.everyman", "psasword123");
+
+            try_logon(&accounts, "j.everyman", "password123");
+        }
+
+    }
+
+    pub mod c19_7_2 {
+        use std::collections::HashSet;
+
+        pub fn main() {
+            let mut a: HashSet<i32> = vec!(1i32, 2, 3).into_iter().collect();
+            let mut b: HashSet<i32> = vec!(2i32, 3, 4).into_iter().collect();
+
+            assert!(a.insert(4));
+            assert!(a.contains(&4));
+
+            // 如果值已经存在，那么 `HashSet::insert()` 返回 false。
+            // assert!(b.insert(4), "Value 4 is already in set B!");
+            // 改正 ^ 将此行注释掉。
+
+            b.insert(5);
+
+            // 若一个集合（collection）的元素类型实现了 `Debug`，那么该集合也就实现了 `Debug`。
+            // 这通常将元素打印成这样的格式 `[elem1, elem2, ...]
+            println!("A: {:?}", a);
+            println!("B: {:?}", b);
+
+            // 乱序打印 [1, 2, 3, 4, 5]。
+            println!("Union: {:?}", a.union(&b).collect::<Vec<&i32>>());
+
+            // 这将会打印出 [1]
+            println!("Difference: {:?}", a.difference(&b).collect::<Vec<&i32>>());
+
+            // 乱序打印 [2, 3, 4]。
+            println!("Intersection: {:?}", a.intersection(&b).collect::<Vec<&i32>>());
+
+            // 打印 [1, 5]
+            println!("Symmetric Difference: {:?}",
+                     a.symmetric_difference(&b).collect::<Vec<&i32>>());
+        }
+
+    }
+
+    pub mod c19_8 {
+        use std::rc::Rc;
+
+        pub fn main() {
+            let rc_examples = "Rc examples".to_string();
+            {
+                println!("--- rc_a is created ---");
+
+                let rc_a: Rc<String> = Rc::new(rc_examples);
+                println!("Reference Count of rc_a: {}", Rc::strong_count(&rc_a));
+
+                {
+                    println!("--- rc_a is cloned to rc_b ---");
+
+                    let rc_b: Rc<String> = Rc::clone(&rc_a);
+                    println!("Reference Count of rc_b: {}", Rc::strong_count(&rc_b));
+                    println!("Reference Count of rc_a: {}", Rc::strong_count(&rc_a));
+
+                    // 如果两者内部的值相等的话，则两个 `Rc` 相等。
+                    println!("rc_a and rc_b are equal: {}", rc_a.eq(&rc_b));
+
+                    // 我们可以直接使用值的方法
+                    println!("Length of the value inside rc_a: {}", rc_a.len());
+                    println!("Value of rc_b: {}", rc_b);
+
+                    println!("--- rc_b is dropped out of scope ---");
+                }
+
+                println!("Reference Count of rc_a: {}", Rc::strong_count(&rc_a));
+
+                println!("--- rc_a is dropped out of scope ---");
+            }
+
+            // 报错！`rc_examples` 已经移入 `rc_a`。
+            // 而且当 `rc_a` 被删时，`rc_examples` 也被一起删除。
+            // println!("rc_examples: {}", rc_examples);
+            // 试一试 ^ 注释掉此行代码
+        }
+
+    }
+    pub mod c19_9 {
+        use std::sync::Arc;
+        use std::thread;
+
+        pub fn main() {
+            // 这个变量声明用来指定其值的地方。
+            let apple = Arc::new("the same apple");
+
+            for _ in 0..10 {
+                // 这里没有数值说明，因为它是一个指向内存堆中引用的指针。
+                let apple = Arc::clone(&apple);
+
+                thread::spawn(move || {
+                    // 由于使用了Arc，线程可以使用分配在 `Arc` 变量指针位置的值来生成。
+                    println!("{:?}", apple);
+                });
+            }
+        }
+
 
     }
 }
 
 
 fn main() {
-    c17::c17_4::main();
+    c19::c19_8::main();
 }
